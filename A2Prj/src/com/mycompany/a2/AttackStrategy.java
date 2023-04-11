@@ -1,0 +1,30 @@
+package com.mycompany.a2;
+
+import com.codename1.util.MathUtil;
+
+public class AttackStrategy implements IStrategy {
+	private PlayerRobot player;
+	private NonPlayerRobot npr;
+
+	/*
+	 * The strategy to follow/go after the playerRobot
+	 * */
+	public AttackStrategy(GameObjectCollection gameObjects, NonPlayerRobot npr) {
+		IIterator it = gameObjects.getIterator();
+		while(it.hasNext()) {
+			GameObjects temp = it.getNext();
+			if(temp instanceof PlayerRobot) {
+				player = (PlayerRobot)temp;
+				break;
+			}
+		}
+		this.npr = npr;
+	}
+	public void strategy() {
+		double a = npr.getX() - player.getX();
+		double b = npr.getY() - player.getY();
+		double angle = 90 - Math.toDegrees(MathUtil.atan2(b, a));
+		npr.setHeading(npr.getSteeringDirection() + (int)angle);
+	}
+
+}
