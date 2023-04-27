@@ -46,25 +46,25 @@ public class ScoreView extends Container implements Observer {
 		this.add(clockTimeLabel);
 	}
 	private void setLivesLabel() {
-		livesLabel = styles(new Label("Lives Left: "));
+		livesLabel = styles(new Label("Lives Left:"));
 		livesLeftLabel = styles(new Label("0"));
 		this.add(livesLabel);
 		this.add(livesLeftLabel);
 	}
 	private void setBaseReachedLabel() {
-		baseReachedLabel = styles(new Label("Player Last base Reached: "));
+		baseReachedLabel = styles(new Label("Player Last base Reached:"));
 		baseNumLabel = styles(new Label("00"));
 		this.add(baseReachedLabel);
 		this.add(baseNumLabel);
 	}
 	private void setEnergyLabel() {
-		energyLabel = styles(new Label("Player Energy Level: "));
+		energyLabel = styles(new Label("Player Energy Level:"));
 		energyLvlLabel = styles(new Label("000"));
 		this.add(energyLabel);
 		this.add(energyLvlLabel);
 	}
 	private void setDamageLevelLabel() {
-		damageLabel = styles(new Label("Player Damage Level: "));
+		damageLabel = styles(new Label("Player Damage Level:"));
 		damageLvlLabel = styles(new Label("000"));
 		this.add(damageLabel);
 		this.add(damageLvlLabel);
@@ -80,6 +80,10 @@ public class ScoreView extends Container implements Observer {
 	 */
 	public void update(Observable o, Object arg) {
 		gw = (GameWorld)arg;
+		/*
+		 * not sure why sometimes the numbers on damageLevel and clockTime glitch out
+		 * but sometimes they work
+		 */
 		this.clockTimeLabel.setText("" + gw.getClock());
 		this.livesLeftLabel.setText("" + gw.getLife());
 		this.baseNumLabel.setText("" + gw.getLastBaseReached());

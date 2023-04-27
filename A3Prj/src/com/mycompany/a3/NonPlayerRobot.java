@@ -1,21 +1,31 @@
 package com.mycompany.a3;
 
+import com.codename1.charts.models.Point;
 import com.codename1.charts.util.ColorUtil;
+import com.codename1.ui.Graphics;
 
 public class NonPlayerRobot extends Robot {
 	private IStrategy strat;
 	
 	public NonPlayerRobot () {
-		super(ColorUtil.rgb(255, 255, 0));
+		super(ColorUtil.rgb(255, 0, 0));
 		this.setMaximumDamageLevel(40);
+		this.setSpeed(5);
 	}
-
+	
 	/*
 	 * Assigning a strategy
 	 * */
 	public void setStrategy(IStrategy s) {
 		strat = s;
-	}
+	}	
+	
+	public void draw(Graphics g, Point pCmdRelPrnt) {
+		g.setColor(getColor());
+		int arrX[] = {(int)(pCmdRelPrnt.getX() + getX() - (getSize()/2)), (int)(pCmdRelPrnt.getX() + getX() + (getSize()/2)), (int)(pCmdRelPrnt.getX() + getX() + (getSize()/2)), (int)(pCmdRelPrnt.getX() + getX() - (getSize()/2))};
+		int arrY[] = {(int)(pCmdRelPrnt.getY() + getY() - (getSize()/2)), (int)(pCmdRelPrnt.getY() + getY() - (getSize()/2)), (int)(pCmdRelPrnt.getY() + getY() + (getSize()/2)), (int)(pCmdRelPrnt.getY() + getY() + (getSize()/2))};
+		g.drawPolygon(arrX, arrY, 4);
+	} 
 	
 	/*
 	 * Getting and assigning a strategy to non player robots
@@ -31,7 +41,7 @@ public class NonPlayerRobot extends Robot {
 				+ " color = " + this.colorToString() 
 				+ " heading = " + this.getHeading() 
 				+ " speed = " + this.getSpeed() 
-//				+ " size = " + this.getSize()
+				+ " size = " + this.getSize()
 				+ " maxSpeed = " + this.getMaximumSpeed()
 				+ " steeringDirection = " + this.getSteeringDirection()
 				+ " energyLevel = " + this.getEnergyLevel()

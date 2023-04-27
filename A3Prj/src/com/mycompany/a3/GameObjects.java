@@ -4,10 +4,9 @@ import java.util.Random;
 
 import com.codename1.charts.models.Point;
 import com.codename1.charts.util.ColorUtil;
+import com.codename1.ui.Graphics;
 
-public abstract class GameObjects implements IDrawable {
-//	private float x;
-//	private float y;
+public abstract class GameObjects implements IDrawable, ICollider {
 	private int color;
 	private Point location;
 	private int size;
@@ -26,6 +25,13 @@ public abstract class GameObjects implements IDrawable {
 		float x = random.nextFloat() * 1000;
 		float y = random.nextFloat() * 1000;
 		this.location = new Point(x, y);
+	}
+
+	public boolean collidesWith(ICollider otherObject) {
+		float dx = ((GameObjects)otherObject).getX() - this.getX();
+		float dy = ((GameObjects)otherObject).getY() - this.getY();
+		if(dx * dx + dy * dy < 5000) return true;
+		return false;
 	}
 	
 	//getters and setters

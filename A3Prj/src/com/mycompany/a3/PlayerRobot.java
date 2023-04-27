@@ -1,13 +1,15 @@
 package com.mycompany.a3;
 
+import com.codename1.charts.models.Point;
 import com.codename1.charts.util.ColorUtil;
+import com.codename1.ui.Graphics;
 
 public class PlayerRobot extends Robot implements ISteerable {
 	private static PlayerRobot player;
 	
 	private PlayerRobot() {
-		super(ColorUtil.rgb(255, 255, 255));
-		this.setMaximumDamageLevel(25);
+		super(ColorUtil.rgb(255, 0, 0));
+		this.setMaximumDamageLevel(100);
 	}
 	
 	/*
@@ -19,53 +21,12 @@ public class PlayerRobot extends Robot implements ISteerable {
 		}
 		return player;
 	}
-	
-	/*
-	 * Increase speed by one
-	 */
-	public void accelerateRobot() {
-		System.out.println("acc");
-		int speed = getSpeed();
-		if(speed < getMaximumSpeed()) {
-			setSpeed(++speed);
-		} else {
-			System.out.println("You are at the maximum speed.");
-		}
-	}
-	/*
-	 * reduces speed by one
-	 */
-	public void brakeRobot() {
-		int speed = getSpeed();
-		if(speed > 0) {
-			setSpeed(--speed);
-		}
-	}
-	/*
-	 * changes direction by 5 degrees at as time
-	 */
-	public void leftRobot() {
-		int direction = getSteeringDirection();
-		int heading = getHeading();
-		direction -= 5;
-		if(direction < -40) {
-			System.out.println("You can only turn 40 degrees.");
-		} else {
-			this.setSteeringDirection(direction);
-			this.setHeading(heading - 5);
-		}
-	}
-	public void rightRobot() {
-		int direction = getSteeringDirection();
-		int heading = getHeading();
-		direction += 5;
-		if(direction > 40) {
-			System.out.println("You can only turn 40 degrees.");
-		} else {
-			this.setSteeringDirection(direction);
-			this.setHeading(heading + 5);
-		}
-	}
+	public void draw(Graphics g, Point pCmdRelPrnt) {
+		g.setColor(getColor());
+		int arrX[] = {(int)(pCmdRelPrnt.getX() + getX() - (getSize()/2)), (int)(pCmdRelPrnt.getX() + getX() + (getSize()/2)), (int)(pCmdRelPrnt.getX() + getX() + (getSize()/2)), (int)(pCmdRelPrnt.getX() + getX() - (getSize()/2))};
+		int arrY[] = {(int)(pCmdRelPrnt.getY() + getY() - (getSize()/2)), (int)(pCmdRelPrnt.getY() + getY() - (getSize()/2)), (int)(pCmdRelPrnt.getY() + getY() + (getSize()/2)), (int)(pCmdRelPrnt.getY() + getY() + (getSize()/2))};
+		g.fillPolygon(arrX, arrY, 4);
+	} 
 	/*
 	 * checks to see if at max damage level
 	 */
@@ -77,12 +38,6 @@ public class PlayerRobot extends Robot implements ISteerable {
 		return false;
 	}
 	
-	public void resetColor() {
-//		this.colorR = colorR - 50;
-//		this.colorG = colorR + 50;
-//		this.colorB = colorR + 50;
-//		this.robotColor = ColorUtil.rgb(colorR, colorG, colorB);
-	}
 	public String toString() {
 		return "Player Robot: " + "loc = " + Math.round(this.getLocation().getX() * 1.0) + ", " + Math.round(this.getLocation().getY() * 1.0) 
 				+ " color = " + this.colorToString() 

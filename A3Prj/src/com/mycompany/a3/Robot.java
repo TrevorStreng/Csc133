@@ -1,39 +1,111 @@
 package com.mycompany.a3;
 
+import java.util.Vector;
+
+import com.codename1.charts.models.Point;
+import com.codename1.charts.util.ColorUtil;
+import com.codename1.ui.Graphics;
+
 public class Robot extends Moveable {
 	private int maximumSpeed;
 	private int energyLevel;
-	private int energyConsumptionRate;
+	private double energyConsumptionRate;
 	private int damageLevel;
 	private int maximumDamageLevel;
 	private int lastBaseReached;
 	private int steeringDirection;
-//	private int robotColor;
-	private int size;
+	private int colorR;
+	Vector<GameObjects> collisionVector = new Vector<GameObjects>();
 
 	
 	// constructor
 	public Robot (int color) {
-		super(color);
-		this.setDamageLevel(0);
+		super(ColorUtil.rgb(255, 0, 0));
+		this.setDamageLevel(-5);
 		this.setEnergyConsumptionRate(1);
 		this.setMaximumSpeed(30);
-		super.setSize(40);
+		super.setSize(100);
 		this.setSteeringDirection(0);
 		this.setEnergyLevel(100);
 		this.setLastBaseReached(1);
+		this.colorR = 255;
 	}
 	// methods
 	/*
 	 * adjust color to lighter color after robot takes damage 
 	 */
-//	public void resetColor() {
-//		this.colorR = colorR - 50;
-//		this.colorG = colorR + 50;
-//		this.colorB = colorR + 50;
-//		this.robotColor = ColorUtil.rgb(colorR, colorG, colorB);
-//	}
+	public void resetColor() {
+		colorR -= 12;
+		this.setColor(ColorUtil.rgb(colorR, 0, 0));
+		
+	}
 	
+	// why this needed here?
+	public void draw(Graphics g, Point pCmdRelPrnt) {
+		// I just dealt with it individually
+	}
+	
+	/*
+	 * Increase speed by one
+	 */
+	public void accelerateRobot() {
+		int speed = getSpeed();
+		if(speed < getMaximumSpeed()) {
+			speed += 2;
+			setSpeed(speed);
+		} else {
+			System.out.println("You are at the maximum speed.");
+		}
+	}
+	/*
+	 * reduces speed by one
+	 */
+	public void brakeRobot() {
+		int speed = getSpeed();
+		if(speed > 0) {
+			speed -= 2;
+			setSpeed(speed);
+		}
+	}
+	/*
+	 * changes direction by 5 degrees at as time
+	 */
+	public void leftRobot() {
+		int direction = getSteeringDirection();
+		int heading = getHeading();
+		direction += 5;
+		if(direction > 40) {
+			System.out.println("You can only turn 40 degrees.");
+		} else {
+			this.setSteeringDirection(direction);
+			this.setHeading(heading + 5);
+		}
+	}
+	public void rightRobot() {
+		int direction = getSteeringDirection();
+		int heading = getHeading();
+		direction -= 5;
+		if(direction < -40) {
+			System.out.println("You can only turn 40 degrees.");
+		} else {
+			this.setSteeringDirection(direction);
+			this.setHeading(heading - 5);
+		}
+	}	
+	public void handleCollision(ICollider otherObject, GameWorld gw) {
+		GameObjects otherObj = (GameObjects)otherObject;
+		// check if collision has already been handled
+		if(!collisionVector.contains(otherObj)) {
+			collisionVector.add(otherObj);
+			if(otherObj instanceof Robot) {
+				gw.robotCollision(this, otherObj);
+			}
+		}
+	}
+	public void removeCollision(ICollider otherObject) {
+		GameObjects otherObj = (GameObjects)otherObject;
+		collisionVector.remove(otherObj);
+	}
 	
 	// Getters and setters
 	public int getMaximumSpeed() {
@@ -48,10 +120,10 @@ public class Robot extends Moveable {
 	public void setEnergyLevel(int energyLevel) {
 		this.energyLevel = energyLevel;
 	}
-	public int getEnergyConsumptionRate() {
+	public double getEnergyConsumptionRate() {
 		return energyConsumptionRate;
 	}
-	public void setEnergyConsumptionRate(int rate ) {
+	public void setEnergyConsumptionRate(double rate) {
 		this.energyConsumptionRate = rate;
 	}
 	public int getDamageLevel() {
@@ -78,31 +150,15 @@ public class Robot extends Moveable {
 	public void setSteeringDirection(int steeringDirection) {
 		this.steeringDirection = steeringDirection;
 	}
-//	public int getRobotColor() {
-//		return robotColor;
-//	}
-	public int getSize() {
-		return size;
-	}
-	
+
 	/*
 	 * increases damage level after collision with drone or another robot
 	 */
 	public void takeDamage() {
 		int damageLevel = getDamageLevel();
-		damageLevel += 1;
+		damageLevel += 5;
 		setDamageLevel(damageLevel);
-	}
-	
-	public void reset(float x, float y) {
-		this.setLocation(x, y);
-		this.setHeading(0);
-		this.setSpeed(0);
-		this.setMaximumSpeed(30);
-		this.setEnergyConsumptionRate(1);
-		this.setEnergyLevel(100);
-		this.setMaximumDamageLevel(100);
-		this.setDamageLevel(0);
+		this.resetColor();
 	}
 	
 	// toString method
@@ -111,7 +167,7 @@ public class Robot extends Moveable {
 				+ " color = " + this.colorToString() 
 				+ " heading = " + this.getHeading() 
 				+ " speed = " + this.getSpeed() 
-//				+ " size = " + this.getSize()
+				+ " size = " + this.getSize()
 				+ " maxSpeed = " + this.getMaximumSpeed()
 				+ " steeringDirection = " + this.getSteeringDirection()
 				+ " energyLevel = " + this.getEnergyLevel()

@@ -5,14 +5,25 @@ public class GameWorld extends Observable {
 	private int clock;
 	private int life;
 	private GameObjectCollection gameObjects;
-	private PlayerRobot player;
-	private int numOfBases = 9;
+	private int numOfBases = 4;
+	private int numOfDrones = 2;
+	private int numOfNPRs = 3;
+	private int numofEnergyStations = 2;
 	private boolean sound;
-
+	private static int mvWidth;
+	private static int mvHeight;
+	private static int energyConsumptionRate;
+	private Sound rcSound;
+	private Sound baseSound;
+	private Sound esSound;
+	private Sound deathSound;
+	private BGSound bgSound;
+	private boolean paused;
+	private int clockOffset;
+	private boolean selectOn;
+	
 	// Constructor
 	public GameWorld() {};
-	
-	
 	/*
 	 * Initializing the game world
 	 * */
@@ -21,24 +32,35 @@ public class GameWorld extends Observable {
 		this.life = 3;
 		gameObjects = new GameObjectCollection();
 		this.sound = false;
+		this.paused = false;
+		this.clockOffset = 1;
+		this.selectOn = false;
 		addObjects();
 		this.setChanged();
 		this.notifyObservers(this);
 	};
+	public void resetLife() {
+		IIterator iterator = gameObjects.getIterator();
+		while(iterator.hasNext()) {
+			GameObjects temp = iterator.getNext();
+			if(temp instanceof PlayerRobot) {
+				((PlayerRobot)temp).setEnergyLevel(100);
+			}
+		}
+	}
 	
 	/*
 	 * Adding the needed gameObjects to the GameObjectCollection
 	 * */
 	public void addObjects() {
 		gameObjects.add(PlayerRobot.getPlayerRobot());
-		player = PlayerRobot.getPlayerRobot();
-		for(int i = 1; i <= numOfBases; i++) {
+		for(int i = getLastBaseReached(); i <= numOfBases; i++) {
 			gameObjects.add(new Base(i));
 		}
-		for(int i = 0; i < 3; i++) {
+		for(int i = 0; i <= numofEnergyStations; i++) {
 			gameObjects.add(new EnergyStation());
 		}
-		for(int i = 0; i < 3; i++) {
+		for(int i = 0; i <= numOfNPRs; i++) {
 			NonPlayerRobot npr = new NonPlayerRobot();
 			if(i % 2 == 0) {
 				npr.setStrategy(new AttackStrategy(gameObjects, npr));
@@ -47,8 +69,45 @@ public class GameWorld extends Observable {
 			}
 			gameObjects.add(npr);
 		}
+		for(int i = 0; i <= numOfDrones; i++) {
+			gameObjects.add(new Drone());
+		}
 	}
-	
+	public void createSounds() {
+		bgSound = new BGSound("bgSound.mp3");
+		rcSound = new Sound("slap.wav"); // robot collision sound
+		baseSound = new Sound("Laser.wav");
+		esSound = new Sound("bow.wav");
+		deathSound = new Sound("glassCrunch.wav");
+	}
+	public void isPaused() {
+		paused = !paused;
+		if(!paused) {
+			selectOn = false;
+		}
+		if(!paused && getSound()) {
+			bgSound.play();
+			rcSound.play();
+			baseSound.play();
+			esSound.play();
+			deathSound.play();
+		} else {
+			bgSound.pause();
+			rcSound.pause();
+			baseSound.pause();
+			esSound.pause();
+			deathSound.pause();
+		}
+	}
+	public boolean getPause() {
+		return paused;
+	}
+	public boolean getSelect() {
+		return selectOn;
+	}
+	public void setSelect() {
+		selectOn = !selectOn;
+	}
 	/*
 	 * accelerates or slows down speed of robot
 	 */
@@ -60,7 +119,6 @@ public class GameWorld extends Observable {
 				((PlayerRobot)temp).accelerateRobot();
 			}
 		}
-//		player.accelerateRobot(); // does this work??
 		System.out.println("You accelerated!");
 		this.setChanged();
 		this.notifyObservers(this);
@@ -113,117 +171,57 @@ public class GameWorld extends Observable {
 	/*
 	 * Takes damage when you get hit by another robot
 	 * */
-	public void robotCollision() {
-		IIterator iterator = gameObjects.getIterator();
-		while(iterator.hasNext()) {
-			GameObjects temp = iterator.getNext();
-			if(temp instanceof PlayerRobot) {
-				((PlayerRobot)temp).takeDamage();
-				if(((PlayerRobot)temp).getDamageLevel() >= ((PlayerRobot)temp).getMaximumDamageLevel()) {
-					System.out.println("Game over");
-					System.exit(0);
-				}
-				((PlayerRobot)temp).resetColor();
-				IIterator iterator2 = gameObjects.getIterator();
-				while(iterator2.hasNext()) {
-					GameObjects temp2 = iterator.getNext();
-					if(temp2 instanceof NonPlayerRobot) {
-						if(((NonPlayerRobot)temp2).getDamageLevel() < ((NonPlayerRobot)temp2).getMaximumDamageLevel()) {
-							((NonPlayerRobot)temp2).takeDamage();
-							break;
-						} else {
-							((NonPlayerRobot)temp2).setSpeed(0);
-						}
-					}
-				}
-			}
+	public void robotCollision(GameObjects thisObj, GameObjects otherObj) {
+		((Robot)thisObj).takeDamage();
+		if(thisObj instanceof PlayerRobot && otherObj instanceof NonPlayerRobot) {
+			if(sound) rcSound.play();
 		}
-		System.out.println("You hit a robot!");
-		this.setChanged();
-		this.notifyObservers(this);
 	}
 	/*
 	 * if base collision has occurred increments base number
 	 */
-	public void baseCollision(int n) {
-		IIterator it = gameObjects.getIterator(); // got sick of typing out iterator so its "it" now
-		while(it.hasNext()) {
-			GameObjects temp = it.getNext();
-			if(temp instanceof PlayerRobot) {
-				int currentBase = ((PlayerRobot)temp).getLastBaseReached();
-				if(n == currentBase+1) {
-					System.out.println("You made it to the next base!");
-					((PlayerRobot)temp).setLastBaseReached(n);
-					currentBase += 1;
-				}
-			}
+	public void baseCollision(GameObjects thisObj, GameObjects otherObj) {
+		int lastBase = ((Robot) otherObj).getLastBaseReached();
+		int sequenceNumber = ((Base)thisObj).getBaseNumber();
+		if(sequenceNumber == lastBase+1) {
+		((Robot)otherObj).setLastBaseReached(lastBase + 1);
 		}
-		this.setChanged();
-		this.notifyObservers(this);
+		if(sound) baseSound.play();
 	}
 	/*
 	 * if collision with energy station occurs then robot energy is increased and 
 	 * energy station capacity is decreased accordingly 
 	 */
-	public void energyCollision() {
-		IIterator it = gameObjects.getIterator();
-		while(it.hasNext()) {
-			GameObjects temp = it.getNext();
-			if(temp instanceof PlayerRobot) {
-				IIterator it2 = gameObjects.getIterator();
-				while(it2.hasNext()) {
-					GameObjects temp2 = it2.getNext();
-					if(temp2 instanceof EnergyStation) {
-						int esLevel = ((EnergyStation)temp2).getCapacity();
-						if(esLevel > 0) {
-							int robotEnergy = ((PlayerRobot)temp).getEnergyLevel();
-							int tempLvl = 100 - robotEnergy;
-							robotEnergy += esLevel;
-							esLevel -= tempLvl;
-							if(robotEnergy <= 100) {
-								((PlayerRobot)temp).setEnergyLevel(robotEnergy);
-								((EnergyStation)temp2).setSize(0);
-								((EnergyStation)temp2).setCapacity(0);
-							} else {
-								((EnergyStation)temp2).setSize(esLevel);
-								((EnergyStation)temp2).setCapacity(esLevel);
-								((PlayerRobot)temp).setEnergyLevel(100);
-							}
-							System.out.println("Your energy level is now " + ((PlayerRobot)temp).getEnergyLevel());
-						}
-					}
-				}
-				
-			}
+	public void energyCollision(GameObjects thisObj, GameObjects otherObj) {
+		int esLevel = ((EnergyStation)thisObj).getCapacity();
+		int robotEnergy = ((Robot)otherObj).getEnergyLevel();
+		int diff = 100 - robotEnergy;
+		int newLvl = robotEnergy + esLevel;
+		if(newLvl > 100) newLvl = 100;
+		((Robot)otherObj).setEnergyLevel(newLvl);
+		esLevel -= diff;
+		if(esLevel <= 0) {
+//			this.remove();
+			new EnergyStation();
+		} else {
+			((EnergyStation)thisObj).setSize(esLevel);
+			((EnergyStation)thisObj).setCapacity(esLevel);
 		}
-		System.out.println("You hit a Energy Station!");
-		this.setChanged();
-		this.notifyObservers(this);
+		System.out.println("Your energy level is now " + ((Robot)otherObj).getEnergyLevel());
+		if(sound) esSound.play();
 	}
 	/*
 	 * if collision with drone occurs then robot takes damage and changes to a lighter color
 	 */
-	public void droneCollision() {
-		IIterator it = gameObjects.getIterator();
-		while(it.hasNext()) {
-			GameObjects temp = it.getNext();
-			if(temp instanceof PlayerRobot) {
-				int robotDamage = ((PlayerRobot)temp).getDamageLevel();
-				int maxRobotDamage = ((PlayerRobot)temp).getMaximumDamageLevel();
-				robotDamage += 5;
-				if(robotDamage < maxRobotDamage) {
-					((PlayerRobot)temp).setDamageLevel(robotDamage);
-					int maxSpeed = ((PlayerRobot)temp).getMaximumSpeed();
-					((PlayerRobot)temp).setMaximumSpeed(maxSpeed - 2);
-					((PlayerRobot)temp).resetColor();
-					System.out.println("You have taken damage. Current damage level: " + ((PlayerRobot)temp).getDamageLevel());
-				}
-				it.remove(temp);
-				break;
-			}
-		}
-		this.setChanged();
-		this.notifyObservers(this);
+	public void droneCollision(GameObjects thisObj, GameObjects otherObj) {
+//		int dmgLvl = ((PlayerRobot)otherObj).getDamageLevel();
+//		dmgLvl += 5;
+//		((PlayerRobot)otherObj).setDamageLevel(dmgLvl);
+		((Robot)otherObj).takeDamage();
+		int speed = ((PlayerRobot)otherObj).getSpeed();
+		if(speed > 1) speed -= 2;
+		if(speed == 1) speed = 0;
+		((PlayerRobot)otherObj).setSpeed(speed);
 	} 
 	
 	/*
@@ -255,55 +253,89 @@ public class GameWorld extends Observable {
 	 * otherwise checks energy and damage levels to see if you have lost a life
 	 * if not it moves the robot and the drones
 	*/
-	public void clockTick() {
-		System.out.println("The clock ticked!");
-		int clock = getClock();
-		clock++;
-		setClock(clock);
+	public void clockTick(double elapsedTime) {
+		// fix timer for elapsed time
+		clockOffset++;
+		// increment clock every 50 * 20 milliseconds
+		if(clockOffset >= 50) {
+			int clock = getClock();
+			clock++;
+			setClock(clock);
+			clockOffset = 1;
+		}
 		IIterator it = gameObjects.getIterator();
 		while(it.hasNext()) {
 			GameObjects temp = it.getNext();
+			if(temp instanceof NonPlayerRobot) {
+				if(((NonPlayerRobot)temp).getLastBaseReached() == numOfBases) {
+					System.out.println("Game over. you Lose. NonPlayerRobot Wins. Total time: " + clock);
+					System.exit(0);
+				}
+			}
 			if(temp instanceof PlayerRobot) {
 				if(((PlayerRobot)temp).getLastBaseReached() == numOfBases) {
 					System.out.println("Game over. you win! Total time: " + clock);
 					System.exit(0);
 				}
-				int energyLevel = ((PlayerRobot)temp).getEnergyLevel();
+				double energyLevel = ((PlayerRobot)temp).getEnergyLevel();
+				((PlayerRobot)temp).setSteeringDirection(0);
 				if(energyLevel > 0 && ((PlayerRobot)temp).getDamageLevel() < ((PlayerRobot)temp).getMaximumDamageLevel()) {
-					((PlayerRobot)temp).move();
-					((PlayerRobot)temp).setSteeringDirection(0);
-					int energyConsumptionRate = ((PlayerRobot)temp).getEnergyConsumptionRate();
-					energyLevel -= energyConsumptionRate;
-					((PlayerRobot)temp).setEnergyLevel(energyLevel);
-				} else {
-					System.out.println("You have lost a life.");
-					life--;
-					if(life <= 0) {
-						System.out.println("Game over, you failed!");
-						System.exit(0);
-					}
-					int curBase = ((PlayerRobot)temp).getLastBaseReached();
-					IIterator it2 = gameObjects.getIterator();
-					while(it2.hasNext()) {
-						GameObjects temp2 = it2.getNext();
-						if(temp2 instanceof Base) {
-							if(((Base)temp2).getBaseNumber() == curBase) {
-								float x = ((Base)temp2).getX();
-								float y = ((Base)temp2).getY();
-								((PlayerRobot)temp2).reset(x, y);
-							}
+					((PlayerRobot)temp).move(elapsedTime);
+					if(((PlayerRobot)temp).getSpeed() > 0) {
+						// takes two energy a second
+						if(clockOffset == 1 || clockOffset == 25) {
+							double energyConsumptionRate = (((PlayerRobot)temp).getEnergyConsumptionRate());
+							((PlayerRobot)temp).setEnergyConsumptionRate((energyConsumptionRate));
+							energyLevel -= energyConsumptionRate;
+							((PlayerRobot)temp).setEnergyLevel((int)energyLevel);
 						}
 					}
+				} else {
+					System.out.println("You have lost a life.");
+					deathSound.play();
+					int l = getLife();
+					l--;
+					setLife(l);
+					if(getLife() <= 0) {
+					System.out.println("Game over, you failed!");
+					System.exit(0);
+					}
+					resetLife();
 				}
 			}
 		}
+		
 		IIterator it2 = gameObjects.getIterator();
 		while(it2.hasNext()) {
 			GameObjects temp2 = it2.getNext();
 			if(temp2 instanceof Drone) {
-				((Drone)temp2).move();
+				((Drone)temp2).move(elapsedTime);
 			}
 		}
+		IIterator it3 = gameObjects.getIterator();
+		while(it3.hasNext()) {
+			GameObjects temp3 = it3.getNext();
+			if(temp3 instanceof NonPlayerRobot) {
+				((NonPlayerRobot)temp3).invokeStrategy();
+				((NonPlayerRobot)temp3).move(elapsedTime);
+			}
+		}
+		IIterator it4 = gameObjects.getIterator();
+		while(it4.hasNext()) {
+			GameObjects temp = it4.getNext();
+			ICollider objA = (ICollider)(temp);
+			IIterator it5 = gameObjects.getIterator();
+			while(it5.hasNext()) {
+				GameObjects temp2 = it5.getNext();
+				ICollider objB = (ICollider)(temp2);
+				if(objA.collidesWith(objB)) {
+					objA.handleCollision(objB, this);
+				} else {
+					objA.removeCollision(objB);
+				}
+			}
+		}
+		
 		this.setChanged();
 		this.notifyObservers(this);
 	}
@@ -359,13 +391,30 @@ public class GameWorld extends Observable {
 	public boolean getSound() {
 		return sound;
 	}
-	public void setSound(boolean sound) {
-		this.sound = sound;
+	public void setSound(boolean s) {
+		if(s && !paused) bgSound.play();
+		else bgSound.pause();
+		this.sound = s;
 		this.setChanged();
 		this.notifyObservers(this);
 	}
 	public int getLife() {
 		return life;
+	}
+	public void setLife(int life) {
+		this.life = life;
+	}
+	public static void setMVWidth(int mvw) {
+		mvWidth = mvw;
+	}
+	public static int getMVWidth() {
+		return mvWidth;
+	}
+	public static void setMVHeight(int mvh) {
+		mvHeight= mvh;
+	}
+	public static int getMVHeight() {
+		return mvHeight;
 	}
 	public GameObjectCollection getGameObjects() {
 		return gameObjects;

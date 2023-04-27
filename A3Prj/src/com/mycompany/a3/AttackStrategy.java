@@ -19,11 +19,13 @@ public class AttackStrategy implements IStrategy {
 			}
 		}
 		this.npr = npr;
+		this.strategy();
 	}
 	public void strategy() {
 		double a = npr.getX() - player.getX();
 		double b = npr.getY() - player.getY();
 		double angle = 90 - Math.toDegrees(MathUtil.atan2(b, a));
+		npr.getHeading();
 		npr.setHeading(npr.getSteeringDirection() + (int)angle);
 	}
 
